@@ -168,6 +168,35 @@ class TrackingDataset:
             for im_filename in sorted(self.im_filenames):
                 f.write(osp.join(self.im_dir, im_filename) + "\n")
 
+    def _write_mot_challenge_format(self) -> None:
+        """ Write bounding box information in the MOT Challenge format for evaluation."""
+        mot_challenge_annos_dir = os.path.join(self.root, "labels_with_ids")
+        os.makedirs(mot_challenge_annos_dir, exist_ok = True)
+
+        # Create for each image a annotation .txt file in MOT Challenge format
+        for filename, bboxes, im_size in zip(self.im_filenames, self.anno_bboxes, self.im_sizes):
+            im_width = float(im_size[0])
+            im_height = float(im_size[1])
+            mot_challenge_anno_path = os.path.join(mot_challenge_annos_dir, filename[:-4] + ".txt")
+
+            with open(mot_challenge_anno_path, "w") as f:
+                for bbox in bboxes:
+                    tid_curr = bbox.label_idx - 1
+                    x = round(bbox.left + bbox.width() / 2.0)
+                    y = round(bbox.top + bbox.height() / 2.0)
+                    w = bbox.width()
+                    h = bbox.height()
+
+                    label_str = '0 {:d} {:.6f} {:.6f} {:.6f} {:.6f}\n'.format(
+                        tid_curr, x / im_width, y / im_height, w / im_width, h / im_height)
+                    f.write(label_str)
+
+        # write all image filenames into a <name>.train file required by FairMOT
+        self.mot_challenge_imlist_path = osp.join(self.root, "{}.eval".format(self.name))
+        with open(self.mot_challenge_imlist_path, "a") as f:
+            for im_filename in sorted(self.im_filenames):
+                f.write(osp.join(self.im_dir, im_filename) + "\n")
+
 
     def show_ims(self, rows: int = 1, cols: int = 3, seed: int = None) -> None:
         """ Show a set of images.
